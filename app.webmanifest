@@ -1,0 +1,17 @@
+{
+  "name": "Block — 3D geologic block diagrams",
+  "short_name": "Block",
+  "description": "Build, rotate and interrogate 3D geologic block diagrams. Layers, folds, faults, intrusions, unconformities and topography. Works with no signal.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1418",
+  "theme_color": "#0f1418",
+  "categories": ["education", "science", "utilities"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
