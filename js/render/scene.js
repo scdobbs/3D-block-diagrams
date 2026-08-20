@@ -131,71 +131,63 @@ export class BlockScene {
     const span = Math.hypot(B.width, B.depth) * 0.75;
     const accent = 0xffd166;
 
-    // Where the drawn rectangle should be centred: the middle of the block.
     const { lo, hi } = surfaceRange(doc.topo, B.width, B.depth);
     const fp = footprint(B);
-    const blockMid = new THREE.Vector3(
-      (fp.x0 + fp.x1) / 2, (fp.y0 + fp.y1) / 2, (hi + lo - B.height) / 2,
-    );
+    const box = {
+      x0: fp.x0, x1: fp.x1, y0: fp.y0, y1: fp.y1, z0: lo - B.height, z1: hi,
+    };
 
-    // Sized to the block rather than squared off at `span`: a 60-degree fault
-    // drawn as a span x span sheet towers over the model and stops reading as
-    // part of it.
-    const planeSize = (dip) => [
-      span,
-      Math.min(span, B.height / Math.max(0.35, Math.sin(dip * DEG))),
-    ];
-
-    const planeAt = (strike, dip, center, size, color, opacity) => {
+    /**
+     * Draw the part of a plane that lies inside the block, by clipping a
+     * generous quad against the block's six faces.
+     *
+     * Sizing a fixed rectangle and sliding it to frame the block does not
+     * work: bringing the patch to the block's mid-height means moving along
+     * dip by dz / sin(dip), which runs away as the dip shallows and walks the
+     * patch off the side of the model. Clipping has no such term — the drawn
+     * patch is the plane's actual trace through the block, so it pivots in
+     * place as the dip changes and can never drift.
+     */
+    const planeAt = (strike, dip, center, color, opacity) => {
       const { strikeVec, normal } = planeFrame(strike, dip);
       const X = new THREE.Vector3(...strikeVec);
       const Z = new THREE.Vector3(...normal);
       const Y = new THREE.Vector3().crossVectors(Z, X);
 
-      // Slide the rectangle within its own plane so it frames the block. The
-      // plane itself is unchanged — only the patch we draw of it moves — so
-      // this is purely presentational and cannot misreport the geometry.
-      //
-      // X is horizontal (it is the strike), so it centres the patch in map
-      // view; Y then carries it up or down dip until its mid-height matches
-      // the block's. Simply projecting onto the plane is not enough: the
-      // nearest point to the block centre still leaves the patch riding above
-      // the ground surface whenever the plane misses that centre.
-      const c = new THREE.Vector3(center[0], center[1], center[2]);
-      const toMid = blockMid.clone().sub(c);
-      c.addScaledVector(X, toMid.dot(X));
-      if (Math.abs(Y.z) > 0.05) c.addScaledVector(Y, (blockMid.z - c.z) / Y.z);
-      else c.addScaledVector(Y, blockMid.clone().sub(c).dot(Y));
+      const poly = clipPlaneToBox(new THREE.Vector3(...center), X, Y, box);
+      if (poly.length < 3) return;   // this plane misses the block entirely
 
-      const m = new THREE.Matrix4().makeBasis(X, Y, Z);
-      m.setPosition(c.x, c.y, c.z);
-
-      const g = new THREE.PlaneGeometry(size[0], size[1]);
-      const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+      const pos = [];
+      for (let i = 1; i < poly.length - 1; i++) {
+        pos.push(poly[0].x, poly[0].y, poly[0].z);
+        pos.push(poly[i].x, poly[i].y, poly[i].z);
+        pos.push(poly[i + 1].x, poly[i + 1].y, poly[i + 1].z);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      this.helpers.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({
         color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false,
-      }));
-      mesh.applyMatrix4(m);
-      this.helpers.add(mesh);
+      })));
 
-      const outline = new THREE.LineSegments(
-        new THREE.EdgesGeometry(g),
-        new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 }),
-      );
-      outline.applyMatrix4(m);
-      this.helpers.add(outline);
-      return { X, Y, Z };
+      const ring = [];
+      for (const p of poly) ring.push(p.x, p.y, p.z);
+      ring.push(poly[0].x, poly[0].y, poly[0].z);
+      const rg = new THREE.BufferGeometry();
+      rg.setAttribute('position', new THREE.Float32BufferAttribute(ring, 3));
+      this.helpers.add(new THREE.Line(rg, new THREE.LineBasicMaterial({
+        color, transparent: true, opacity: 0.95,
+      })));
     };
 
     switch (event.type) {
       case 'tilt':
         planeAt(event.strike, event.dip,
-          [event.centerX || 0, event.centerY || 0, event.centerZ || 0],
-          planeSize(event.dip), accent, 0.16);
+          [event.centerX || 0, event.centerY || 0, event.centerZ || 0], accent, 0.14);
         break;
 
       case 'fault':
         planeAt(event.strike, event.dip,
-          [event.centerX, event.centerY, event.centerZ], planeSize(event.dip), 0xff6b6b, 0.2);
+          [event.centerX, event.centerY, event.centerZ], 0xff6b6b, 0.18);
         break;
 
       case 'dike': {
@@ -206,7 +198,7 @@ export class BlockScene {
             event.centerX + normal[0] * s,
             event.centerY + normal[1] * s,
             normal[2] * s,
-          ], planeSize(event.dip), 0x8ecae6, 0.16);
+          ], 0x8ecae6, 0.16);
         }
         break;
       }
@@ -302,6 +294,17 @@ export class BlockScene {
         break;
       }
     }
+
+    // Helper geometry sits inside the solid block, so it has to draw over it
+    // to be visible at all. Clipped to the block and drawn on top, a plane
+    // reads as a highlighted slice through the model.
+    this.helpers.traverse((o) => {
+      if (o.material) {
+        o.material.depthTest = false;
+        o.material.transparent = true;
+      }
+      o.renderOrder = 2;
+    });
   }
 
   /** World-space point under a screen coordinate, in true geologic metres. */
@@ -338,3 +341,58 @@ export class BlockScene {
   }
 }
 
+/**
+ * The polygon where an infinite plane meets the block, found by clipping a
+ * generous quad against the block's six faces (Sutherland-Hodgman in 3D).
+ * Returns [] when the plane misses the block.
+ *
+ * @param {THREE.Vector3} point  any point on the plane
+ * @param {THREE.Vector3} X,Y    orthonormal in-plane axes
+ * @param {object} box           { x0, x1, y0, y1, z0, z1 }
+ */
+function clipPlaneToBox(point, X, Y, box) {
+  const mid = new THREE.Vector3(
+    (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, (box.z0 + box.z1) / 2,
+  );
+  // Seed the quad at the plane point nearest the block centre, so a generous
+  // radius is guaranteed to cover the block from any starting point.
+  const toMid = mid.clone().sub(point);
+  const seed = point.clone()
+    .addScaledVector(X, toMid.dot(X))
+    .addScaledVector(Y, toMid.dot(Y));
+  const r = Math.hypot(box.x1 - box.x0, box.y1 - box.y0, box.z1 - box.z0);
+
+  let poly = [
+    seed.clone().addScaledVector(X, -r).addScaledVector(Y, -r),
+    seed.clone().addScaledVector(X, r).addScaledVector(Y, -r),
+    seed.clone().addScaledVector(X, r).addScaledVector(Y, r),
+    seed.clone().addScaledVector(X, -r).addScaledVector(Y, r),
+  ];
+
+  const faces = [
+    [new THREE.Vector3(1, 0, 0), box.x1], [new THREE.Vector3(-1, 0, 0), -box.x0],
+    [new THREE.Vector3(0, 1, 0), box.y1], [new THREE.Vector3(0, -1, 0), -box.y0],
+    [new THREE.Vector3(0, 0, 1), box.z1], [new THREE.Vector3(0, 0, -1), -box.z0],
+  ];
+  for (const [n, d] of faces) {
+    poly = clipPolyByHalfSpace(poly, n, d);
+    if (poly.length < 3) return [];
+  }
+  return poly;
+}
+
+/** Keep the part of a convex polygon with dot(p, n) <= d. */
+function clipPolyByHalfSpace(poly, n, d) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const da = a.dot(n) - d;
+    const db = b.dot(n) - d;
+    if (da <= 0) out.push(a);
+    if ((da < 0 && db > 0) || (da > 0 && db < 0)) {
+      out.push(a.clone().lerp(b, da / (da - db)));
+    }
+  }
+  return out;
+}
