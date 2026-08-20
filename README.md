@@ -10,49 +10,139 @@ strike and dip.
 
 It runs with **no signal** — the point is to use it standing on the outcrop.
 
-### ▶ [Open it: scdobbs.github.io/3D-block-diagrams](https://scdobbs.github.io/3D-block-diagrams/)
+---
 
-Open that once on your phone while you have a connection and add it to your
-home screen (instructions below). After that it works offline.
+# Open it
+
+## 🔗 [scdobbs.github.io/3D-block-diagrams](https://scdobbs.github.io/3D-block-diagrams/)
+
+That is the whole thing. Nothing to download, no account, no app store. Open
+the link and it runs.
+
+**Sharing it with students:** send them that link. Same link for everyone.
+
+## On a computer
+
+Just open the link — Chrome, Safari, Firefox and Edge all work. Nothing to
+install.
+
+- **Left-drag** turns the block
+- **Scroll** zooms; **right-drag** or **shift-drag** pans
+- **Click the block** to identify the unit and read its strike and dip
+
+Start on the **View** tab, load an example like *Anticline & syncline* or
+*Horst & graben*, then take it apart on the **History** tab.
+
+## On a phone
+
+Opening the link works straight away. But to have it **available in the field
+with no signal**, add it to your home screen. It takes about a minute, once.
+
+### iPhone / iPad
+
+1. Open the link in **Safari**. (Chrome on iOS cannot install it properly.)
+2. **Wait for the block to appear**, then give it ~5 more seconds. This is when
+   the app stores itself for offline use — do not skip it.
+3. Tap **Share** — the square with the arrow, bottom center.
+4. **Scroll down** the share sheet to the list of actions and tap **Add to Home
+   Screen**. It sits below Copy and Add Bookmark, so you do have to scroll. If
+   it is missing, scroll to the bottom, tap *Edit Actions…* and switch it on.
+   It is also hidden in Private Browsing tabs.
+5. Tap **Add**.
+6. **Open it from the new home screen icon while you still have signal** and let
+   it load once. iOS gives a home-screen app its own storage, separate from
+   Safari's, so this is when *that* copy gets stored.
+
+### Android
+
+1. Open the link in **Chrome**.
+2. **Wait for the block to appear**, then ~5 more seconds.
+3. Tap the **Install** prompt if one appears — otherwise **⋮** (top right) →
+   **Add to Home screen** / **Install app**.
+4. Confirm, then open it from the new icon.
+
+### Check it before you rely on it
+
+Turn on **Airplane mode** and open the app from the home screen icon. It should
+load completely normally.
+
+If you get an error page instead, turn airplane mode off, open it again, let it
+sit ten seconds, close it fully and retest. It only means the download in step 2
+got cut short.
+
+### Once it is installed
+
+- Opens **full screen**, no browser bars, like any other app
+- **Works with the radio off**
+- **Saves your work by itself** — close it mid-block and it comes back as you left it
+- **One finger** turns, **two fingers** pinch to zoom and drag to pan, **tap**
+  identifies the unit under your finger
+- The panel has a **drag handle** — pull up for more room, push down for more block
+
+When a new version ships you will see a small **"A newer version is ready —
+Reload"** banner next time you open it *with* a connection. Tap it. Offline, it
+keeps running the copy you already have.
 
 ---
 
-## Running it
+# Using it
 
-There is no build step and no `node_modules`. It is plain ES modules plus a
-locally vendored copy of three.js.
+**Layers** — build the column. Tap a unit to set rock type, thickness and
+color, or reorder and delete it. Lithology patterns follow the usual map
+conventions and are drawn procedurally, so they stay crisp at any scale.
 
-```
-python3 dev-server.py 8777
-```
+**History** — the geologic timeline, newest at the top. Add events, then tap
+one to edit it. Strike and trend get a compass you can drag; dip and plunge
+get a protractor. Both accept typed numbers too. **Drag an event by its grip
+to move it through time** (the arrow buttons in the editor do the same thing),
+and disable one without deleting it — the fastest way to see what it was
+actually doing.
 
-then open <http://127.0.0.1:8777/>. Any static file server works; the included
-one just disables caching so edits show up on reload.
+**Terrain** — the land surface: flat, slope, hills, valley, ridge or mountain,
+with roughness on top. A valley with an axial gradient is what you want for
+demonstrating the rule of Vs. **Contour lines** are drawn on the map face,
+with every fifth one heavier and **labelled with its elevation**; the interval
+is chosen from the terrain's own relief so it stays around a dozen lines
+whatever the landform, and you can pin it to a fixed value instead.
+This tab also holds block size, vertical
+exaggeration (display only — strikes and dips are unaffected), and the
+**cutaway**, which slides the east and north walls into the block to expose
+fresh cross-sections. The cutaway is the only way to see a pluton that sits
+entirely inside the block.
 
-### Deploying
+**View** — worked examples to load and take apart, canned viewpoints (map view,
+the four section views), display toggles, and save/open/export.
 
-GitHub Pages is already serving `main` from the repository root, so **pushing
-to `main` deploys**. It takes a minute or two to go live.
-
-One thing to remember: `sw.js` is cache-first, so a browser that has already
-installed the app will keep serving the old copy until the cache name changes.
-**Bump `CACHE` in `sw.js` whenever you change any precached file.** Visitors
-who already have the app open get a "newer version is ready" prompt.
-
-Any static host works, as long as it serves over **HTTPS** — that is what the
-service worker requires, and the service worker is what makes it work offline.
-
-### Installing on a phone
-
-Open the deployed URL once while you have a connection, then:
-
-- **iOS** — Share → *Add to Home Screen*
-- **Android** — the *Install app* prompt, or ⋮ → *Add to Home screen*
-
-It then launches full-screen like a native app and works with the radio off.
-Your block autosaves to the device, so it survives being closed.
+**Tap the block** anywhere to identify the unit under your finger and read the
+strike and dip of bedding at that point — recovered the same way a field
+measurement is, from the orientation of the bedding surface itself.
 
 ---
+
+## Conventions
+
+- **X = East, Y = North, Z = Up.** Metres throughout.
+- **Strike** follows the right-hand rule: with the strike direction ahead of
+  you, the beds dip down to your right. Recorded as azimuth, 0–360° from north.
+- **Dip** and **plunge** are measured down from horizontal.
+- **Faults** are described the way a student describes them: pick a type —
+  normal, reverse/thrust, dextral or sinistral — then dial **oblique slip**
+  from −90° to +90° to mix in the other component. Zero is the pure form of
+  the type you chose; the ends are the pure opposite. The editor reports the
+  resulting **rake** (measured in the fault plane from the strike direction,
+  rotating toward down-dip: `90°` normal, `270°` reverse, `0°` sinistral,
+  `180°` dextral), because that is what the literature uses. Rake is derived,
+  never stored, so there is only one source of truth; older files that saved a
+  bare rake are converted on load without changing their geometry.
+- The **stratigraphic column** is listed youngest at the top, as you would
+  draw it. Below the deepest unit is undifferentiated basement.
+- Above the top of the column, the youngest unit is extended upward. The block
+  has to be made of something everywhere, and repeating the top unit is the
+  reading a geologist expects.
+
+---
+
+# Under the hood
 
 ## How the geology works
 
@@ -91,62 +181,6 @@ an event triggers a recompile.
 `js/geo/unmake.js` is a CPU implementation of the same walk. It powers the
 identify tool and it is the reference the shader must agree with — **if you
 change one, change the other.**
-
----
-
-## Conventions
-
-- **X = East, Y = North, Z = Up.** Metres throughout.
-- **Strike** follows the right-hand rule: with the strike direction ahead of
-  you, the beds dip down to your right. Recorded as azimuth, 0–360° from north.
-- **Dip** and **plunge** are measured down from horizontal.
-- **Faults** are described the way a student describes them: pick a type —
-  normal, reverse/thrust, dextral or sinistral — then dial **oblique slip**
-  from −90° to +90° to mix in the other component. Zero is the pure form of
-  the type you chose; the ends are the pure opposite. The editor reports the
-  resulting **rake** (measured in the fault plane from the strike direction,
-  rotating toward down-dip: `90°` normal, `270°` reverse, `0°` sinistral,
-  `180°` dextral), because that is what the literature uses. Rake is derived,
-  never stored, so there is only one source of truth; older files that saved a
-  bare rake are converted on load without changing their geometry.
-- The **stratigraphic column** is listed youngest at the top, as you would
-  draw it. Below the deepest unit is undifferentiated basement.
-- Above the top of the column, the youngest unit is extended upward. The block
-  has to be made of something everywhere, and repeating the top unit is the
-  reading a geologist expects.
-
----
-
-## Using it
-
-**Layers** — build the column. Tap a unit to set rock type, thickness and
-color, or reorder and delete it. Lithology patterns follow the usual map
-conventions and are drawn procedurally, so they stay crisp at any scale.
-
-**History** — the geologic timeline, newest at the top. Add events, then tap
-one to edit it. Strike and trend get a compass you can drag; dip and plunge
-get a protractor. Both accept typed numbers too. **Drag an event by its grip
-to move it through time** (the arrow buttons in the editor do the same thing),
-and disable one without deleting it — the fastest way to see what it was
-actually doing.
-
-**Terrain** — the land surface: flat, slope, hills, valley, ridge or mountain,
-with roughness on top. A valley with an axial gradient is what you want for
-demonstrating the rule of Vs. **Contour lines** are drawn on the map face,
-with every fifth one heavier and **labelled with its elevation**; the interval
-is chosen from the terrain's own relief so it stays around a dozen lines
-whatever the landform, and you can pin it to a fixed value instead. This tab also holds block size, vertical
-exaggeration (display only — strikes and dips are unaffected), and the
-**cutaway**, which slides the east and north walls into the block to expose
-fresh cross-sections. The cutaway is the only way to see a pluton that sits
-entirely inside the block.
-
-**View** — worked examples to load and take apart, canned viewpoints (map view,
-the four section views), display toggles, and save/open/export.
-
-**Tap the block** anywhere to identify the unit under your finger and read the
-strike and dip of bedding at that point — recovered the same way a field
-measurement is, from the orientation of the bedding surface itself.
 
 ---
 
@@ -217,7 +251,41 @@ fragment uniform budget of older mobile GPUs.
   they can alias into a solid wash, and switch to a light line on dark rock so
   they stay visible over coal and basement.
 
-### Wrapping it as a store app
+---
+
+# Working on the code
+
+Only needed if you want to change the app. There is no build step and no
+`node_modules` — plain ES modules plus a locally vendored copy of three.js.
+
+```
+python3 dev-server.py 8777
+```
+
+then open <http://127.0.0.1:8777/>. Any static file server works; the included
+one just disables caching so edits show up on reload.
+
+## Deploying
+
+GitHub Pages serves `main` from the repository root, so **pushing to `main`
+deploys**. It goes live a minute or two later.
+
+⚠️ **Bump `CACHE` in `sw.js` whenever you change any precached file.** The
+service worker is cache-first, so a browser that already has the app keeps
+serving the old copy until that name changes. No error — it just silently
+stays old.
+
+Two things that will fool you when checking a deploy:
+
+- GitHub Pages sends `max-age=600`, so for ~10 minutes your browser may hand you
+  the old files even though the deploy is live. Reload a second time.
+- The first load after an update runs the *old* cached copy by design and shows
+  the "newer version is ready" banner. That is correct behavior, not a failure.
+
+Any static host works, as long as it serves over **HTTPS** — that is what the
+service worker requires, and the service worker is what makes it work offline.
+
+## Wrapping it as a store app
 
 The code is a plain static site with no build step, so it drops into
 [Capacitor](https://capacitorjs.com) unchanged when you want App Store and
