@@ -792,8 +792,40 @@ export function viewPanel(ctx) {
       }),
     ]));
 
+    // Attribution and license. The source link is not decorative: the AGPL
+    // requires that people who use the app over a network be able to get at
+    // the source, and anyone who forks and rehosts inherits that obligation.
     root.appendChild(el('div', { class: 'about' }, [
       el('p', { text: 'Works with no signal. Add it to your home screen and it will open like any other app.' }),
+      el('div', { class: 'about-rule' }),
+      el('p', { class: 'about-title', text: 'Block — 3D geologic block diagrams' }),
+      el('p', {}, [
+        'Created by ',
+        el('strong', { text: 'Stephen Dobbs' }),
+        '. © 2026.',
+      ]),
+      el('p', {}, [
+        'Licensed ',
+        el('a', {
+          href: 'https://www.gnu.org/licenses/agpl-3.0.html',
+          target: '_blank', rel: 'noopener noreferrer', text: 'AGPL-3.0',
+        }),
+        '. Free to use, study and share; if you modify it and host it, you must publish your source and keep this attribution.',
+      ]),
+      el('p', {}, [
+        el('a', {
+          class: 'about-link',
+          href: 'https://github.com/scdobbs/3D-block-diagrams',
+          target: '_blank', rel: 'noopener noreferrer', text: 'Source code on GitHub',
+        }),
+      ]),
+      el('p', { class: 'about-dim' }, [
+        '3D rendering by ',
+        el('a', {
+          href: 'https://threejs.org', target: '_blank', rel: 'noopener noreferrer', text: 'three.js',
+        }),
+        ' (MIT).',
+      ]),
     ]));
   };
 

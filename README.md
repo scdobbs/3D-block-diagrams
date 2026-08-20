@@ -1,5 +1,7 @@
 # Block — 3D geologic block diagrams
 
+By **Stephen Dobbs** · [AGPL-3.0](LICENSE)
+
 An offline-first phone app for building and interrogating 3D geologic block
 diagrams. Rotate the block in any direction, stack a stratigraphic column,
 apply a history of tilts, folds, faults, intrusions and unconformities, drape
@@ -210,3 +212,24 @@ The code is a plain static site with no build step, so it drops into
 [Capacitor](https://capacitorjs.com) unchanged when you want App Store and
 Play Store binaries — `npx cap add ios`, point `webDir` at this folder. That
 does need Node and Xcode; the PWA route above does not.
+
+---
+
+## License and attribution
+
+Copyright © 2026 **Stephen Dobbs**.
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+In short: you are free to use it, study it, share it and build on it. If you
+modify it and make it available to anyone — **including by hosting it on a
+website** — you have to publish your modified source under the same license and
+keep the attribution. That network clause is the point: it is what stops a
+modified copy being rebranded and run as someone else's product.
+
+Using the app as-is with your students needs no permission at all.
+
+Bundled third-party code and its license is listed in [NOTICE](NOTICE):
+[three.js](https://threejs.org) (MIT).
+
+Not legal advice.

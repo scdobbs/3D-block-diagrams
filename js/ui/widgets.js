@@ -10,6 +10,10 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 
 export function el(tag, props = {}, children = []) {
   const n = document.createElement(tag);
+  // Tolerate el(tag, children): passing an array of children where the props
+  // object belongs otherwise sets attributes named "0", "1", ... and silently
+  // drops the children.
+  if (Array.isArray(props)) { children = props; props = {}; }
   applyProps(n, props);
   append(n, children);
   return n;
