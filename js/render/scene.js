@@ -5,7 +5,7 @@ import * as THREE from '../../vendor/three.module.js';
 import { OrbitControls } from './controls.js';
 import { BlockMaterial } from './material.js';
 import { buildBlockGeometry, buildEdgeLines, footprint } from './block.js';
-import { planeFrame, axisFrame, DEG } from '../geo/math.js';
+import { planeFrame, axisFrame, rotateAbout, DEG } from '../geo/math.js';
 import { surfaceHeight, surfaceRange } from '../geo/surfaces.js';
 
 export class BlockScene {
@@ -212,19 +212,24 @@ export class BlockScene {
       }
 
       case 'fold': {
-        // Axial traces: the lines where the fold crests and troughs sit.
+        // Axial traces: the hinge lines where the fold crests and troughs sit.
+        // Built the same way the geology is — place the hinge in the upright
+        // fold, then carry it through the plunge tilt — so the drawn lines and
+        // the shaded rock cannot drift apart.
         const { perp, axis } = axisFrame(event.trend, event.plunge);
         const pts = [];
         const lam = Math.max(1, event.wavelength);
         const phase = (event.phase || 0) * DEG;
+        const cx = event.centerX || 0;
+        const cy = event.centerY || 0;
         for (let k = -3; k <= 3; k++) {
           // cos(2*pi*u/lam + phase) is extreme where 2*pi*u/lam + phase = k*pi
           const u = (k * Math.PI - phase) * lam / (2 * Math.PI);
-          const base = [
-            (event.centerX || 0) + perp[0] * u,
-            (event.centerY || 0) + perp[1] * u,
-            0,
-          ];
+          const crest = event.amplitude * Math.cos(k * Math.PI);
+          const tilted = rotateAbout(
+            [perp[0] * u, perp[1] * u, crest], perp, -(event.plunge || 0),
+          );
+          const base = [tilted[0] + cx, tilted[1] + cy, tilted[2]];
           const half = span;
           pts.push(
             base[0] - axis[0] * half, base[1] - axis[1] * half, base[2] - axis[2] * half,

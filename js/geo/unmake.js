@@ -8,8 +8,9 @@
 //
 // Every deformation here is exactly invertible:
 //   tilt   - rigid rotation about a horizontal axis
-//   fold   - displacement along `up`, by an amount that depends only on the
-//            `perp` coordinate, which displacement along `up` cannot change
+//   fold   - an upright fold (vertical displacement, wave across `perp`)
+//            followed by a rigid tilt about `perp`; neither step changes the
+//            `perp` coordinate the wave is read from
 //   dome   - vertical displacement depending only on (x, y)
 //   fault  - rigid translation of the hanging wall parallel to the fault
 //            plane, so the side test is unchanged by the slip itself
@@ -37,8 +38,8 @@ export function compileHistory(doc) {
         return { ...e, axis: strikeVec };
       }
       case 'fold': {
-        const { perp, up } = axisFrame(e.trend, e.plunge);
-        return { ...e, perp, up };
+        const { perp } = axisFrame(e.trend, e.plunge);
+        return { ...e, perp };
       }
       case 'fault': {
         const { normal } = planeFrame(e.strike, e.dip);
@@ -76,11 +77,16 @@ function undoEvent(e, p) {
       return [r[0] + c[0], r[1] + c[1], r[2] + c[2]];
     }
     case 'fold': {
-      const d = [p[0] - (e.centerX || 0), p[1] - (e.centerY || 0), p[2]];
-      const u = dot(d, e.perp);
+      // Undo the plunge tilt first, then the upright fold beneath it.
+      const cx = e.centerX || 0;
+      const cy = e.centerY || 0;
+      const d = rotateAbout([p[0] - cx, p[1] - cy, p[2]], e.perp, e.plunge || 0);
       const k = (2 * Math.PI) / Math.max(1, e.wavelength);
-      const off = e.amplitude * Math.cos(k * u + (e.phase || 0) * DEG);
-      return [p[0] - e.up[0] * off, p[1] - e.up[1] * off, p[2] - e.up[2] * off];
+      // Rotating about `perp` leaves the `perp` component untouched, and the
+      // fold displaces along z, which is also orthogonal to `perp`. So the
+      // wave coordinate survives both steps and the inverse stays exact.
+      const off = e.amplitude * Math.cos(k * dot(d, e.perp) + (e.phase || 0) * DEG);
+      return [d[0] + cx, d[1] + cy, d[2] - off];
     }
     case 'domebasin': {
       const az = (e.azimuth || 0) * DEG;

@@ -114,7 +114,7 @@ function addEventUniforms(u, p, e) {
       u[`${p}_axis`] = V3(); u[`${p}_center`] = V3(); u[`${p}_angle`] = F();
       break;
     case 'fold':
-      u[`${p}_perp`] = V3(); u[`${p}_up`] = V3(); u[`${p}_wave`] = V3(); u[`${p}_center`] = V2();
+      u[`${p}_perp`] = V3(); u[`${p}_wave`] = V3(); u[`${p}_center`] = V3(); u[`${p}_plunge`] = F();
       break;
     case 'domebasin':
       u[`${p}_c`] = V4(); u[`${p}_r`] = V3();
@@ -144,15 +144,15 @@ function setEventUniforms(u, p, e) {
       break;
     }
     case 'fold': {
-      const { perp, up } = axisFrame(e.trend, e.plunge);
+      const { perp } = axisFrame(e.trend, e.plunge);
       u[`${p}_perp`].value.set(...perp);
-      u[`${p}_up`].value.set(...up);
       u[`${p}_wave`].value.set(
         e.amplitude,
         (2 * Math.PI) / Math.max(1, e.wavelength),
         (e.phase || 0) * DEG,
       );
-      u[`${p}_center`].value.set(e.centerX || 0, e.centerY || 0);
+      u[`${p}_center`].value.set(e.centerX || 0, e.centerY || 0, 0);
+      u[`${p}_plunge`].value = (e.plunge || 0) * DEG;
       break;
     }
     case 'domebasin':

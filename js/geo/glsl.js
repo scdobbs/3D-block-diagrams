@@ -117,11 +117,17 @@ function emitTilt(p) {
 
 function emitFold(p) {
   return {
-    decl: `uniform vec3 ${p}_perp; uniform vec3 ${p}_up; uniform vec3 ${p}_wave; uniform vec2 ${p}_center;`,
+    decl: `uniform vec3 ${p}_perp; uniform vec3 ${p}_wave; uniform vec3 ${p}_center; uniform float ${p}_plunge;`,
     // _wave = (amplitude, angular wavenumber, phase in radians)
     code: `  {
-    float u = dot(p - vec3(${p}_center, 0.0), ${p}_perp);
-    p -= ${p}_up * (${p}_wave.x * cos(${p}_wave.y * u + ${p}_wave.z));
+    // A plunging fold is an upright fold that was tilted about the horizontal
+    // axis perpendicular to its trend, so undo the tilt first. Leaning the
+    // displacement direction instead would only shear the fold: the wave
+    // would still depend on horizontal position alone, which leaves the
+    // hinge of a flat bed horizontal no matter how far it is leaned.
+    vec3 d = rotAbout(p - ${p}_center, ${p}_perp, ${p}_plunge);
+    d.z -= ${p}_wave.x * cos(${p}_wave.y * dot(d, ${p}_perp) + ${p}_wave.z);
+    p = d + ${p}_center;
   }`,
   };
 }

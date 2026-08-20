@@ -42,15 +42,20 @@ export function planeFrame(strikeDeg, dipDeg) {
 }
 
 /**
- * Orthonormal frame for a linear structure (a fold axis) given trend/plunge.
- *   axis   the plunging line itself
- *   perp   horizontal, 90 degrees clockwise from the trend. Fold waveform is
- *          a function of position along this direction only.
- *   up     perp x axis. Displacement direction; lies in the axial surface.
+ * Frame for a fold axis given trend/plunge.
+ *   axis   the plunging hinge line itself (used to draw axial traces)
+ *   perp   horizontal, 90 degrees clockwise from the trend
  *
- * Because `perp` is horizontal and orthogonal to `up`, displacing a point
- * along `up` never changes its `perp` coordinate -- which is what makes the
- * fold transform exactly invertible.
+ * A plunging fold is built as an upright fold that was afterwards tilted
+ * about `perp` by the plunge angle. That tilt is what carries the hinge
+ * lines down along the trend.
+ *
+ * The tempting shortcut -- keep the wave a function of the horizontal `perp`
+ * coordinate and merely lean the displacement direction over -- does NOT
+ * plunge anything. The displacement then depends only on horizontal position,
+ * so it is constant along any vertical plane, and the crest of a flat bed
+ * stays a horizontal line however far the displacement direction is leaned.
+ * It shears the fold instead of plunging it.
  */
 export function axisFrame(trendDeg, plungeDeg) {
   const t = trendDeg * DEG;
@@ -59,8 +64,7 @@ export function axisFrame(trendDeg, plungeDeg) {
 
   const axis = [Math.sin(t) * cosP, Math.cos(t) * cosP, -sinP];
   const perp = [Math.cos(t), -Math.sin(t), 0];
-  const up = cross(perp, axis);
-  return { axis, perp, up };
+  return { axis, perp };
 }
 
 /**

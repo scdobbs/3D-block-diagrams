@@ -67,7 +67,7 @@ Every deformation is exactly invertible, which is what makes this work:
 | Event | Forward | Why the inverse is exact |
 |---|---|---|
 | **Tilt** | rigid rotation about the strike line | rotations invert |
-| **Fold** | displacement along the axial direction, by an amount depending only on the across-strike coordinate | that coordinate is orthogonal to the displacement, so it cannot change |
+| **Fold** | an upright fold (vertical displacement, wave read across the horizontal `perp` axis), then a rigid tilt about `perp` by the plunge | neither step changes the `perp` coordinate the wave is read from |
 | **Dome / basin** | vertical displacement depending only on map position | map position is unchanged by vertical motion |
 | **Fault** | rigid translation of the hanging wall, parallel to the fault plane | slip lies in the plane, so the hanging-wall test gives the same answer before and after |
 | **Unconformity** | splits the column: units above the erosion surface skip all older history | a branch, not a transform |
@@ -191,6 +191,11 @@ fragment uniform budget of older mobile GPUs.
   surface so a curved surface can be slotted in later.
 - Folds are similar folds (Class 2): layer thickness is preserved parallel to
   the axial surface, not perpendicular to bedding.
+- A plunging fold is built as an upright fold plus a rigid tilt about the
+  horizontal axis perpendicular to its trend, so the whole fold train tilts —
+  which is what puts the nose in the map view. Merely leaning the displacement
+  direction over does not plunge anything; it shears the fold and leaves the
+  hinge of a flat bed horizontal.
 - Intrusions cut everything older than themselves and are deformed by
   everything younger, which is correct, but they have no chilled margins or
   contact aureoles.
