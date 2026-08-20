@@ -133,9 +133,9 @@ actually doing.
 **Terrain** — the land surface: flat, slope, hills, valley, ridge or mountain,
 with roughness on top. A valley with an axial gradient is what you want for
 demonstrating the rule of Vs. **Contour lines** are drawn on the map face,
-with every fifth one heavier; the interval is chosen from the terrain's own
-relief so it stays around a dozen lines whatever the landform, and you can pin
-it to a fixed value instead. This tab also holds block size, vertical
+with every fifth one heavier and **labelled with its elevation**; the interval
+is chosen from the terrain's own relief so it stays around a dozen lines
+whatever the landform, and you can pin it to a fixed value instead. This tab also holds block size, vertical
 exaggeration (display only — strikes and dips are unaffected), and the
 **cutaway**, which slides the east and north walls into the block to expose
 fresh cross-sections. The cutaway is the only way to see a pluton that sits
@@ -173,6 +173,7 @@ js/
     material.js       document → uniforms; decides when to recompile
     controls.js       touch-first orbit controls
     scene.js          renderer, camera, event helper geometry, picking
+    contours.js       traces index contours to place elevation labels
   ui/
     app.js            shell, tabs, identify tool, files
     panels.js         layers / history / terrain / view panels
@@ -209,7 +210,10 @@ fragment uniform budget of older mobile GPUs.
 - Roughness is remembered per surface but is not applied to the **Flat**
   landform, so switching back to Flat always gives a level plain.
 - Contours are shaded per fragment from elevation, not traced as polylines, so
-  they cost nothing to redraw and stay sharp at any zoom. They fade out before
+  they cost nothing to redraw and stay sharp at any zoom. The index contours
+  *are* traced on the CPU, but only to decide where their elevation labels go;
+  each label then tells the shader to break the line around it, the way a map
+  puts the number in a gap rather than on top of the contour. They fade out before
   they can alias into a solid wash, and switch to a light line on dark rock so
   they stay visible over coal and basement.
 

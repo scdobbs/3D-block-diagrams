@@ -4,7 +4,7 @@
 //
 // Bump CACHE when any precached file changes.
 
-const CACHE = 'blockdiagram-v8';
+const CACHE = 'blockdiagram-v9';
 
 const ASSETS = [
   './',
@@ -23,6 +23,7 @@ const ASSETS = [
   './js/render/controls.js',
   './js/render/material.js',
   './js/render/scene.js',
+  './js/render/contours.js',
   './js/ui/app.js',
   './js/ui/panels.js',
   './js/ui/widgets.js',

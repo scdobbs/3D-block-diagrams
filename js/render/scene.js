@@ -7,6 +7,7 @@ import { BlockMaterial } from './material.js';
 import { buildBlockGeometry, buildEdgeLines, footprint } from './block.js';
 import { planeFrame, axisFrame, rotateAbout, DEG } from '../geo/math.js';
 import { surfaceHeight, surfaceRange } from '../geo/surfaces.js';
+import { buildContourLabels, buildLabelMeshes, MAX_LABELS } from './contours.js';
 
 export class BlockScene {
   constructor(canvas) {
@@ -37,6 +38,10 @@ export class BlockScene {
 
     this.helpers = new THREE.Group();
     this.scene.add(this.helpers);
+
+    this.labels = new THREE.Group();
+    this.scene.add(this.labels);
+    this._labelKey = null;
 
     this.raycaster = new THREE.Raycaster();
     this._geomKey = null;
@@ -89,17 +94,58 @@ export class BlockScene {
     this.blockMat.syncStructure(doc);
     this.blockMat.syncUniforms(doc);
     this.syncGeometry(doc);
+    this.syncLabels(doc);
 
     const ex = doc.settings.exaggeration || 1;
     this.mesh.scale.z = ex;
     this.edges.scale.z = ex;
     this.helpers.scale.z = ex;
+    this.labels.scale.z = ex;
     this.blockMat.uniforms.uExag.value = ex;
 
     const q = doc.settings.quality;
     this.blockMat.uniforms.uSamples.value =
       q === 'low' ? 1 : q === 'high' ? 4 : this._autoSamples;
 
+    this._needsRender = true;
+  }
+
+  /**
+   * Rebuild the contour labels, and tell the shader where to break the line.
+   * Tracing is CPU work, so it only reruns when the terrain, the block or the
+   * contour interval actually change — not on every camera nudge.
+   */
+  syncLabels(doc) {
+    const interval = this.blockMat.uniforms.uContourInterval.value;
+    const every = this.blockMat.uniforms.uContourIndexEvery.value;
+    const key = JSON.stringify([doc.topo, doc.block, interval, every]);
+    if (key === this._labelKey) return;
+    this._labelKey = key;
+
+    this.labels.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();   // the text texture itself is cached
+    });
+    this.labels.clear();
+
+    const u = this.blockMat.uniforms;
+    if (!(interval > 0)) {
+      u.uLabelCount.value = 0;
+      this._needsRender = true;
+      return;
+    }
+
+    const { lo, hi } = surfaceRange(doc.topo, doc.block.width, doc.block.depth);
+    const fp = footprint(doc.block);
+    const box = { ...fp, z0: lo - doc.block.height, z1: hi };
+    const { labels, spots, labelW } = buildContourLabels(doc, interval, every, box);
+
+    for (let i = 0; i < MAX_LABELS; i++) {
+      u.uLabelSpots.value[i].set(spots[i * 4], spots[i * 4 + 1], spots[i * 4 + 2], 0);
+    }
+    u.uLabelCount.value = labels.length;
+
+    if (labels.length) this.labels.add(buildLabelMeshes(labels, labelW));
     this._needsRender = true;
   }
 

@@ -373,6 +373,8 @@ uniform float uExag;
 
 uniform float uContourInterval;
 uniform float uContourIndexEvery;
+uniform vec4  uLabelSpots[24];   // (x, y, gap radius, unused)
+uniform int   uLabelCount;
 
 varying vec3 vWorld;
 varying vec3 vNrm;
@@ -479,9 +481,22 @@ void main() {
         float halfW = mix(0.55, 1.05, major);
         float ink = (1.0 - smoothstep(halfW - 0.5, halfW + 0.5, d)) * fade;
         ink *= mix(0.5, 0.85, major);
+
+        // Break the line where an elevation label sits, the way a map does.
+        // Only worth testing on fragments that actually carry ink.
+        if (ink > 0.002 && major > 0.5) {
+          for (int i = 0; i < 24; i++) {
+            if (i >= uLabelCount) break;
+            vec4 sp = uLabelSpots[i];
+            float r = length(vWorld.xy - sp.xy) / max(sp.z, 1e-4);
+            ink *= smoothstep(0.82, 1.06, r);
+          }
+        }
         // Dark rock needs a light line and light rock a dark one, or the
-        // contour disappears on coal and basement.
-        float lum = dot(lit, vec3(0.299, 0.587, 0.114));
+        // contour disappears on coal and basement. Judge that on the rock's
+        // own colour, not the shaded result: hillshading varies across a
+        // single unit and would flip the line's polarity mid-slope.
+        float lum = dot(col, vec3(0.299, 0.587, 0.114));
         vec3 lineCol = lum > 0.34 ? lit * 0.45 : lit + vec3(0.22);
         lit = mix(lit, lineCol, clamp(ink, 0.0, 1.0));
       }

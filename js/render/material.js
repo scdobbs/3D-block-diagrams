@@ -40,6 +40,8 @@ export class BlockMaterial {
       uExag: { value: 1 },
       uContourInterval: { value: 0 },
       uContourIndexEvery: { value: 5 },
+      uLabelSpots: { value: Array.from({ length: 24 }, () => new THREE.Vector4()) },
+      uLabelCount: { value: 0 },
     };
     this.structure = null;
     this.material = new THREE.ShaderMaterial({
