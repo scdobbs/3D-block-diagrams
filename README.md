@@ -102,7 +102,10 @@ fresh cross-sections. The cutaway is the only way to see a pluton that sits
 entirely inside the block.
 
 **View** — worked examples to load and take apart, canned viewpoints (map view,
-the four section views), display toggles, and save/open/export.
+the four section views), display toggles, and save/open/export. **Event
+guides** turns off the translucent plane drawn for whichever event is open in
+History; it is drawn over the block so you can see where the structure sits,
+which is exactly what you do not want when reading the map.
 
 **Tap the block** anywhere to identify the unit under your finger and read the
 strike and dip of bedding at that point — recovered the same way a field

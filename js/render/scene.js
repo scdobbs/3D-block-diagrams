@@ -171,7 +171,7 @@ export class BlockScene {
   showHelper(doc, event) {
     this.helpers.clear();
     this._needsRender = true;
-    if (!event) return;
+    if (!event || doc.settings.showEventGuides === false) return;
 
     const B = doc.block;
     const span = Math.hypot(B.width, B.depth) * 0.75;

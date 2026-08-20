@@ -783,6 +783,12 @@ export function viewPanel(ctx) {
       onChange: (v) => ctx.store.edit((d) => { d.settings.showContacts = v; }, { structural: false }),
     }));
     root.appendChild(toggleRow({
+      label: 'Event guides', value: doc.settings.showEventGuides !== false,
+      hint: 'The plane or axes of whichever event is open in History. Turn off for a clean map.',
+      onChange: (v) => ctx.store.edit((d) => { d.settings.showEventGuides = v; },
+        { structural: false }),
+    }));
+    root.appendChild(toggleRow({
       label: 'Compass', value: doc.settings.showCompass,
       onChange: (v) => ctx.store.edit((d) => { d.settings.showCompass = v; }, { structural: true }),
     }));

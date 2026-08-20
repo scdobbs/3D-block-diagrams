@@ -249,6 +249,7 @@ export function defaultDocument() {
       showPatterns: true,
       quality: 'auto',      // 'auto' | 'high' | 'low'
       showCompass: true,
+      showEventGuides: true,
       showContours: true,
       contourInterval: 0,   // 0 = choose one from the terrain's relief
       exaggeration: 1,
