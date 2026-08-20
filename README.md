@@ -8,6 +8,11 @@ strike and dip.
 
 It runs with **no signal** — the point is to use it standing on the outcrop.
 
+### ▶ [Open it: scdobbs.github.io/3D-block-diagrams](https://scdobbs.github.io/3D-block-diagrams/)
+
+Open that once on your phone while you have a connection and add it to your
+home screen (instructions below). After that it works offline.
+
 ---
 
 ## Running it
@@ -22,9 +27,18 @@ python3 dev-server.py 8777
 then open <http://127.0.0.1:8777/>. Any static file server works; the included
 one just disables caching so edits show up on reload.
 
-To deploy, copy the whole folder to any static host that serves it over
-**HTTPS** (GitHub Pages, Netlify, S3 — anything). HTTPS is required for the
-service worker, which is what makes it work offline.
+### Deploying
+
+GitHub Pages is already serving `main` from the repository root, so **pushing
+to `main` deploys**. It takes a minute or two to go live.
+
+One thing to remember: `sw.js` is cache-first, so a browser that has already
+installed the app will keep serving the old copy until the cache name changes.
+**Bump `CACHE` in `sw.js` whenever you change any precached file.** Visitors
+who already have the app open get a "newer version is ready" prompt.
+
+Any static host works, as long as it serves over **HTTPS** — that is what the
+service worker requires, and the service worker is what makes it work offline.
 
 ### Installing on a phone
 
