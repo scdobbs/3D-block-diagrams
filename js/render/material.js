@@ -5,7 +5,7 @@ import * as THREE from '../../vendor/three.module.js';
 import { buildFragmentShader, VERTEX, uniformPrefix } from '../geo/glsl.js';
 import { MAX_LAYERS, rock, faultRake } from '../geo/model.js';
 import { planeFrame, axisFrame, slipVec, DEG } from '../geo/math.js';
-import { KIND_CODE, surfaceUniform } from '../geo/surfaces.js';
+import { KIND_CODE, surfaceUniform, surfaceRange, niceContourInterval } from '../geo/surfaces.js';
 
 const tmpColor = new THREE.Color();
 
@@ -38,6 +38,8 @@ export class BlockMaterial {
       uLightDir: { value: new THREE.Vector3(0.45, -0.62, 0.65).normalize() },
       uSamples: { value: 4 },
       uExag: { value: 1 },
+      uContourInterval: { value: 0 },
+      uContourIndexEvery: { value: 5 },
     };
     this.structure = null;
     this.material = new THREE.ShaderMaterial({
@@ -93,6 +95,18 @@ export class BlockMaterial {
     u.uPatternStrength.value = s.showPatterns ? 1 : 0;
     u.uContactStrength.value = s.showContacts ? 1 : 0;
     u.uExag.value = s.exaggeration || 1;
+
+    // Contour interval: either the value the user pinned, or one chosen from
+    // the terrain's own relief so the map stays readable as the landform
+    // changes. Flat ground yields 0, which switches contours off.
+    if (s.showContours === false) {
+      u.uContourInterval.value = 0;
+    } else if (s.contourInterval > 0) {
+      u.uContourInterval.value = s.contourInterval;
+    } else {
+      const { lo, hi } = surfaceRange(doc.topo, doc.block.width, doc.block.depth);
+      u.uContourInterval.value = niceContourInterval(hi - lo);
+    }
 
     const events = activeEvents(doc);
     for (let i = 0; i < events.length; i++) {

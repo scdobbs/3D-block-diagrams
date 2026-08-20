@@ -132,7 +132,10 @@ actually doing.
 
 **Terrain** — the land surface: flat, slope, hills, valley, ridge or mountain,
 with roughness on top. A valley with an axial gradient is what you want for
-demonstrating the rule of Vs. This tab also holds block size, vertical
+demonstrating the rule of Vs. **Contour lines** are drawn on the map face,
+with every fifth one heavier; the interval is chosen from the terrain's own
+relief so it stays around a dozen lines whatever the landform, and you can pin
+it to a fixed value instead. This tab also holds block size, vertical
 exaggeration (display only — strikes and dips are unaffected), and the
 **cutaway**, which slides the east and north walls into the block to expose
 fresh cross-sections. The cutaway is the only way to see a pluton that sits
@@ -205,6 +208,10 @@ fragment uniform budget of older mobile GPUs.
   separate erosion event.
 - Roughness is remembered per surface but is not applied to the **Flat**
   landform, so switching back to Flat always gives a level plain.
+- Contours are shaded per fragment from elevation, not traced as polylines, so
+  they cost nothing to redraw and stay sharp at any zoom. They fade out before
+  they can alias into a solid wash, and switch to a light line on dark rock so
+  they stay visible over coal and basement.
 
 ### Wrapping it as a store app
 

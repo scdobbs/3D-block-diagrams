@@ -312,10 +312,13 @@ float patternInk(float id, vec2 q) {
 
 export const VERTEX = /* glsl */ `
 uniform float uExag;
+attribute float top;
 varying vec3 vWorld;
 varying vec3 vNrm;
+varying float vTop;
 
 void main() {
+  vTop = top;
   // vWorld stays in true geologic coordinates so the history walk is honest.
   // Vertical exaggeration is applied by scaling the mesh itself (which keeps
   // raycasting for the identify tool working), so all this shader has to do
@@ -368,8 +371,12 @@ uniform vec3  uLightDir;
 uniform float uSamples;
 uniform float uExag;
 
+uniform float uContourInterval;
+uniform float uContourIndexEvery;
+
 varying vec3 vWorld;
 varying vec3 vNrm;
+varying float vTop;
 
 /**
  * Pick a unit by depth below the top of the sub-column [lo, hi).
@@ -456,6 +463,30 @@ void main() {
   float sky = 0.5 + 0.5 * n.z;
   vec3 lit = col * (0.34 + 0.62 * key) + col * sky * 0.22;
   lit += vec3(0.05, 0.045, 0.04) * pow(max(0.0, 1.0 - abs(dot(n, normalize(vec3(0.0, 0.0, 1.0))))), 3.0);
+
+  // Contours, on the land surface only. Spacing is measured in screen space
+  // via fwidth, so the lines keep a constant on-screen weight at any zoom and
+  // fade out before they can alias into a solid wash.
+  if (vTop > 0.5 && uContourInterval > 0.0) {
+    float f = vWorld.z / uContourInterval;
+    float w = fwidth(f);
+    if (w > 1e-6) {
+      float fade = 1.0 - smoothstep(0.30, 0.75, w);
+      if (fade > 0.001) {
+        float d = abs(fract(f + 0.5) - 0.5) / w;
+        float idx = floor(f + 0.5);
+        float major = abs(mod(idx, uContourIndexEvery)) < 0.5 ? 1.0 : 0.0;
+        float halfW = mix(0.55, 1.05, major);
+        float ink = (1.0 - smoothstep(halfW - 0.5, halfW + 0.5, d)) * fade;
+        ink *= mix(0.5, 0.85, major);
+        // Dark rock needs a light line and light rock a dark one, or the
+        // contour disappears on coal and basement.
+        float lum = dot(lit, vec3(0.299, 0.587, 0.114));
+        vec3 lineCol = lum > 0.34 ? lit * 0.45 : lit + vec3(0.22);
+        lit = mix(lit, lineCol, clamp(ink, 0.0, 1.0));
+      }
+    }
+  }
 
   gl_FragColor = vec4(lit, 1.0);
 }

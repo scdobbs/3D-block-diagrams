@@ -128,6 +128,24 @@ export function surfaceRange(s, width, depth, n = 24) {
   return { lo, hi };
 }
 
+/**
+ * A contour interval that gives roughly `target` lines across the relief,
+ * snapped to a value a map would actually use (1, 2, 5, 10, 20, 25, 50 ...).
+ * Returns 0 for ground flat enough that contours would be meaningless — on a
+ * dead-level surface every point sits on the same contour, which would ink
+ * the entire map face.
+ */
+export function niceContourInterval(relief, target = 12) {
+  if (!(relief > 1)) return 0;
+  const raw = relief / target;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const n = raw / pow;
+  // 2.5 earns its place: 25 m and 250 m are intervals real maps use, and
+  // without it the 2-to-5 gap is wide enough to swing the line count by half.
+  const step = n <= 1.5 ? 1 : n <= 2.2 ? 2 : n <= 3.5 ? 2.5 : n <= 7.5 ? 5 : 10;
+  return step * pow;
+}
+
 /** Flat float array in the order the shader's uniform block expects. */
 export function surfaceUniform(s) {
   return [

@@ -4,7 +4,7 @@
 //
 // Bump CACHE when any precached file changes.
 
-const CACHE = 'blockdiagram-v7';
+const CACHE = 'blockdiagram-v8';
 
 const ASSETS = [
   './',

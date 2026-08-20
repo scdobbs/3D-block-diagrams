@@ -35,6 +35,9 @@ export function buildBlockGeometry(block, topo, res = 96) {
   const pos = [];
   const nrm = [];
   const idx = [];
+  // 1 on the land surface, 0 on the walls and base. Contours are a map-face
+  // feature, and a normal-direction test would misjudge very steep terrain.
+  const top = [];
 
   const xAt = (i) => x0 + (i / res) * (x1 - x0);
   const yAt = (j) => y0 + (j / res) * (y1 - y0);
@@ -48,6 +51,7 @@ export function buildBlockGeometry(block, topo, res = 96) {
       const n = surfaceNormal(topo, x, y, Math.max(1, W / res));
       pos.push(x, y, z);
       nrm.push(n[0], n[1], n[2]);
+      top.push(1);
     }
   }
   const rowW = res + 1;
@@ -71,8 +75,10 @@ export function buildBlockGeometry(block, topo, res = 96) {
       const z = surfaceHeight(topo, x, y);
       pos.push(x, y, z);
       nrm.push(normal[0], normal[1], normal[2]);
+      top.push(0);
       pos.push(x, y, zBase);
       nrm.push(normal[0], normal[1], normal[2]);
+      top.push(0);
     }
     for (let i = 0; i < res; i++) {
       const a = start + i * 2;      // upper
@@ -92,12 +98,13 @@ export function buildBlockGeometry(block, topo, res = 96) {
   // --- base --------------------------------------------------------------
   const bs = pos.length / 3;
   const corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
-  for (const [x, y] of corners) { pos.push(x, y, zBase); nrm.push(0, 0, -1); }
+  for (const [x, y] of corners) { pos.push(x, y, zBase); nrm.push(0, 0, -1); top.push(0); }
   idx.push(bs, bs + 2, bs + 1, bs, bs + 3, bs + 2);
 
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('top', new THREE.Float32BufferAttribute(top, 1));
   g.setIndex(idx);
   g.computeBoundingSphere();
   g.userData.zBase = zBase;

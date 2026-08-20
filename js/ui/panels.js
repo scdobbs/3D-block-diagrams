@@ -14,6 +14,7 @@ import {
   FAULT_KINDS, FAULT_KIND_ORDER, faultRake, faultSense,
 } from '../geo/model.js';
 import { quadrantBearing } from '../geo/math.js';
+import { surfaceRange, niceContourInterval } from '../geo/surfaces.js';
 
 // ---------------------------------------------------------------------------
 // Stratigraphy
@@ -675,6 +676,29 @@ export function terrainPanel(ctx) {
       ctx.store.edit((d) => { Object.assign(d.topo, patch); }, { coalesce: `topo:${key}` });
     }));
 
+    root.appendChild(el('div', { class: 'sub-head', text: 'Contours' }));
+    root.appendChild(toggleRow({
+      label: 'Contour lines', value: doc.settings.showContours !== false,
+      hint: 'Drawn on the map face only. Every fifth line is heavier.',
+      onChange: (v) => ctx.store.edit((d) => { d.settings.showContours = v; },
+        { structural: true }),
+    }));
+    if (doc.settings.showContours !== false) {
+      const { lo, hi } = surfaceRange(doc.topo, doc.block.width, doc.block.depth);
+      const auto = niceContourInterval(hi - lo);
+      root.appendChild(selectRow({
+        label: 'Interval',
+        value: String(doc.settings.contourInterval || 0),
+        options: [
+          { value: '0', label: auto ? `Automatic — ${fmtInterval(auto)}` : 'Automatic — ground is flat' },
+          ...[5, 10, 20, 25, 50, 100, 200, 500].map((v) => ({ value: String(v), label: `${v} m` })),
+        ],
+        onChange: (v) => ctx.store.edit((d) => { d.settings.contourInterval = Number(v); },
+          { structural: true }),
+      }));
+      root.appendChild(el('div', { class: 'ctl-hint standalone', text: `Relief across the block: ${Math.round(hi - lo)} m` }));
+    }
+
     root.appendChild(el('div', { class: 'sub-head', text: 'Block size' }));
     for (const [key, label, max] of [
       ['width', 'Width (E–W)', 6000],
@@ -839,6 +863,10 @@ function viewBtn(ctx, label, az, el_) {
     class: 'btn small', type: 'button', text: label,
     onclick: () => ctx.setView(az, el_),
   });
+}
+
+function fmtInterval(v) {
+  return v >= 1 ? `${Math.round(v)} m` : `${v} m`;
 }
 
 function sectionHead(title, sub) {
