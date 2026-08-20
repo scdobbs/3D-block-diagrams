@@ -16,11 +16,6 @@ It runs with **no signal** — the point is to use it standing on the outcrop.
 
 ## 🔗 [scdobbs.github.io/3D-block-diagrams](https://scdobbs.github.io/3D-block-diagrams/)
 
-That is the whole thing. Nothing to download, no account, no app store. Open
-the link and it runs.
-
-**Sharing it with students:** send them that link. Same link for everyone.
-
 ## On a computer
 
 Just open the link — Chrome, Safari, Firefox and Edge all work. Nothing to
@@ -36,18 +31,15 @@ Start on the **View** tab, load an example like *Anticline & syncline* or
 ## On a phone
 
 Opening the link works straight away. But to have it **available in the field
-with no signal**, add it to your home screen. It takes about a minute, once.
-
+with no signal**, add it to your home screen.
 ### iPhone / iPad
 
 1. Open the link in **Safari**. (Chrome on iOS cannot install it properly.)
 2. **Wait for the block to appear**, then give it ~5 more seconds. This is when
-   the app stores itself for offline use — do not skip it.
+   the app stores itself for offline use.
 3. Tap **Share** — the square with the arrow, bottom center.
 4. **Scroll down** the share sheet to the list of actions and tap **Add to Home
-   Screen**. It sits below Copy and Add Bookmark, so you do have to scroll. If
-   it is missing, scroll to the bottom, tap *Edit Actions…* and switch it on.
-   It is also hidden in Private Browsing tabs.
+   Screen**. 
 5. Tap **Add**.
 6. **Open it from the new home screen icon while you still have signal** and let
    it load once. iOS gives a home-screen app its own storage, separate from
@@ -73,7 +65,6 @@ got cut short.
 ### Once it is installed
 
 - Opens **full screen**, no browser bars, like any other app
-- **Works with the radio off**
 - **Saves your work by itself** — close it mid-block and it comes back as you left it
 - **One finger** turns, **two fingers** pinch to zoom and drag to pan, **tap**
   identifies the unit under your finger
