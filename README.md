@@ -140,12 +140,16 @@ measurement is, from the orientation of the bedding surface itself.
   erosion surface and abut the older rock. So that unit is thicker in the
   paleovalleys than on the paleohighs, which is what onlap looks like in the
   field.
+- An unconformity is a **boundary in the column**, not an extra unit. The
+  column holds a fixed set of units, so moving the surface down hands one of
+  them from the eroded side to the younger side rather than adding a new one —
+  which is why the older sequence gets shorter as the cover gets thicker. Drag
+  the divider in the Layers tab to move it, or pick the unit it sits beneath.
 - An unconformity's **depth is derived, not set**. It buries its erosion
   surface under the units deposited on it, so the surface sits at the base of
-  exactly those units — *Units above* is what moves it. Only the surface's
-  relief is yours to choose, and that is the part that does the geological
-  work: truncating the older beds, and giving the younger ones a shape to
-  onlap.
+  exactly those units. Only the surface's relief is yours to choose, and that
+  is the part that does the geological work: truncating the older beds, and
+  giving the younger ones a shape to onlap.
 
 ---
 

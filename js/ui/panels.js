@@ -36,11 +36,14 @@ export function layersPanel(ctx) {
     const list = el('div', { class: 'layer-list' });
 
     // Unconformities live in the event history but they cut the column, so
-    // they are drawn here too, at the level they truncate.
+    // they are drawn here too, at the level they truncate. Placed by the
+    // derived count, so a divider can never sit where the geometry does not —
+    // stacked unconformities clamp each other.
+    const datums = unconformityDatums(doc);
     const uncBefore = new Map();
     for (const ev of doc.events) {
       if (ev.type === 'unconformity' && ev.enabled !== false) {
-        const at = Math.min(Math.max(0, ev.aboveCount | 0), doc.layers.length);
+        const at = datums.get(ev.id)?.above ?? 0;
         if (!uncBefore.has(at)) uncBefore.set(at, []);
         uncBefore.get(at).push(ev);
       }
@@ -69,6 +72,7 @@ export function layersPanel(ctx) {
         d.layers = reorderById(d.layers, ids);
       }, { structural: true }),
     });
+    enableDividerDrag(list, ctx);
     root.appendChild(list);
 
     const total = Math.round(totalThickness(doc.layers));
@@ -216,10 +220,24 @@ function unconformityDivider(ctx, ev) {
   const wave = svg('svg', {
     viewBox: '0 0 200 14', class: 'unc-wave', preserveAspectRatio: 'none',
   }, [svg('path', { d, fill: 'none' })]);
-  return el('button', {
-    class: 'unc-divider', type: 'button',
+
+  // Dragging the divider is the honest way to set where an unconformity sits:
+  // it is a boundary in the column, and moving it is visibly a repartition
+  // rather than a number whose consequences you have to infer.
+  const grip = el('button', {
+    class: 'unc-grip', type: 'button',
+    'aria-label': 'Drag to move the unconformity through the column',
+    title: 'Drag to move the unconformity through the column',
+  }, [el('span', { text: '⠿' })]);
+
+  const body = el('button', {
+    class: 'unc-body', type: 'button',
     onclick: () => ctx.selectEvent(ev.id, 'history'),
   }, [wave, el('span', { class: 'unc-label', text: ev.name })]);
+
+  const row = el('div', { class: 'unc-divider' }, [grip, body]);
+  row.dataset.evId = ev.id;
+  return row;
 }
 
 function rockPicker(currentId, onPick) {
@@ -345,7 +363,7 @@ function eventRow(ctx, ev, index) {
     el('span', { class: 'event-icon' }, [eventIcon(ev.type)]),
     el('div', { class: 'event-title' }, [
       el('div', { class: 'event-name', text: ev.name }),
-      el('div', { class: 'event-sub', text: summarise(ev) }),
+      el('div', { class: 'event-sub', text: summarise(ev, doc) }),
     ]),
     el('span', { class: 'chev', text: isOpen ? '▾' : '▸' }),
   ]);
@@ -400,7 +418,7 @@ function eventRow(ctx, ev, index) {
   return row;
 }
 
-function summarise(ev) {
+function summarise(ev, doc) {
   const p = (n) => String(Math.round(n)).padStart(3, '0');
   switch (ev.type) {
     case 'tilt': return `${p(ev.strike)}/${Math.round(ev.dip)}  (${quadrantBearing(ev.strike)})`;
@@ -409,7 +427,12 @@ function summarise(ev) {
     case 'fault': return `${p(ev.strike)}/${Math.round(ev.dip)} · ${faultSense(ev)} · slip ${Math.round(ev.slip)} m`;
     case 'dike': return `${p(ev.strike)}/${Math.round(ev.dip)} · ${Math.round(ev.thickness)} m · ${rock(ev.rockId).label}`;
     case 'pluton': return `${rock(ev.rockId).label} · ${Math.round(ev.radiusX)}×${Math.round(ev.radiusY)}×${Math.round(ev.radiusZ)} m`;
-    case 'unconformity': return `${ev.aboveCount} unit${ev.aboveCount === 1 ? '' : 's'} above · ${ev.surface.kind} surface`;
+    case 'unconformity': {
+      const L = doc.layers;
+      const above = unconformityDatums(doc).get(ev.id)?.above ?? 0;
+      const under = above > 0 && L[above - 1] ? `beneath ${L[above - 1].name}` : 'no cover yet';
+      return `${under} · ${ev.surface.kind} surface`;
+    }
     default: return '';
   }
 }
@@ -477,6 +500,66 @@ function enableDragReorder(list, { rowSel, gripSel, idKey, commit }) {
     const without = shown.filter((x) => x !== id);
     without.splice(target, 0, id);   // target === length appends
     commit(without);
+  };
+
+  list.addEventListener('pointerup', finish);
+  list.addEventListener('pointercancel', finish);
+}
+
+/**
+ * Drag an unconformity divider through the stratigraphic column.
+ *
+ * Unlike a row drag this moves a *boundary*, not an item: the drop index is
+ * how many units end up above the unconformity, which is exactly `aboveCount`.
+ * Boundary n sits above layer row n, so the target is the first row whose
+ * midpoint is still below the finger.
+ */
+function enableDividerDrag(list, ctx) {
+  let drag = null;
+  const line = el('div', { class: 'drop-line' });
+  const rows = () => [...list.querySelectorAll('.layer-row:not(.basement)')];
+
+  list.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('.unc-grip');
+    if (!grip || drag) return;
+    const row = grip.closest('.unc-divider');
+    if (!row) return;
+
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    drag = { row, pointerId: e.pointerId, startY: e.clientY, target: null };
+    row.classList.add('dragging');
+  });
+
+  list.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    drag.row.style.transform = `translateY(${e.clientY - drag.startY}px)`;
+
+    const rs = rows();
+    let idx = rs.length;
+    for (let i = 0; i < rs.length; i++) {
+      const b = rs[i].getBoundingClientRect();
+      if (e.clientY < b.top + b.height / 2) { idx = i; break; }
+    }
+    drag.target = idx;
+    if (idx < rs.length) list.insertBefore(line, rs[idx]);
+    else rs[rs.length - 1].after(line);
+  });
+
+  const finish = (e) => {
+    if (!drag || (e && e.pointerId !== drag.pointerId)) return;
+    const { row, target } = drag;
+    row.classList.remove('dragging');
+    row.style.transform = '';
+    line.remove();
+    drag = null;
+
+    if (target == null) return;
+    const id = row.dataset.evId;
+    ctx.store.edit((d) => {
+      const ev = d.events.find((x) => x.id === id);
+      if (ev) ev.aboveCount = target;
+    }, { structural: true });
   };
 
   list.addEventListener('pointerup', finish);
@@ -647,14 +730,48 @@ function buildEventControls(ctx, ev, index, body) {
 
     case 'unconformity': {
       const doc = ctx.store.doc;
+      const L = doc.layers;
       const datum = unconformityDatums(doc).get(ev.id);
+      const above = datum ? datum.above : Math.min(Math.max(0, ev.aboveCount | 0), L.length);
       const depth = datum ? Math.round(-datum.base) : 0;
-      body.appendChild(numberRow({
-        label: 'Units above', value: ev.aboveCount, min: 0, max: doc.layers.length, step: 1,
-        onChange: (v) => ctx.store.edit((d) => { d.events[index].aboveCount = Math.round(v); },
+
+      // Named, not counted. An unconformity is a boundary in the column, and
+      // saying which unit it sits under makes it obvious that moving it hands
+      // a unit from one side to the other — where a bare count reads as though
+      // the erosion had simply bitten deeper.
+      body.appendChild(selectRow({
+        label: 'Erosion surface sits beneath',
+        value: String(above),
+        options: [
+          { value: '0', label: 'Nothing — no cover deposited yet' },
+          ...L.map((l, i) => ({
+            value: String(i + 1),
+            label: `${l.name} (unit ${L.length - i})`,
+          })),
+        ],
+        onChange: (v) => ctx.store.edit((d) => { d.events[index].aboveCount = Number(v); },
           { structural: true }),
-        hint: `How many units from the top of the column were deposited after the`
-          + ` erosion. That puts the erosion surface ${depth} m down, at their base.`,
+      }));
+
+      const names = (a, b) => L.slice(a, b).map((l) => l.name).join(', ') || '—';
+      body.appendChild(el('div', { class: 'unc-split' }, [
+        el('div', { class: 'unc-split-row' }, [
+          el('span', { class: 'unc-split-key', text: 'Deposited after' }),
+          el('span', { class: 'unc-split-val', text: names(0, above) }),
+        ]),
+        el('div', { class: 'unc-split-row' }, [
+          el('span', { class: 'unc-split-key', text: 'Eroded into' }),
+          el('span', { class: 'unc-split-val', text: names(above, L.length) }),
+        ]),
+      ]));
+      body.appendChild(el('div', {
+        class: 'ctl-hint standalone',
+        text: above > 0
+          ? `The column has a fixed set of units, so moving the surface down`
+            + ` hands one to the younger side rather than adding a new one.`
+            + ` It sits ${depth} m down, at the base of ${L[above - 1].name}.`
+          : 'With nothing deposited on it, the surface is not an unconformity'
+            + ' yet and the block is unchanged.',
       }));
       body.appendChild(selectRow({
         label: 'Younger beds',
@@ -669,7 +786,7 @@ function buildEventControls(ctx, ev, index, body) {
       body.appendChild(el('div', {
         class: 'ctl-hint standalone',
         text: 'Its relief is what truncates the older beds and gives the younger'
-          + ' ones something to onlap; its depth follows the unit count above.',
+          + ' ones something to onlap; its depth follows the unit above.',
       }));
       body.appendChild(surfaceEditor(ev.surface, (patch, key) => {
         ctx.store.edit((d) => { Object.assign(d.events[index].surface, patch); },
