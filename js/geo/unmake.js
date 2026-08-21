@@ -142,14 +142,21 @@ function insideIntrusion(e, p) {
  * sub-column [lo, hi)? Returns a layer index, or -1 for basement.
  * Points above the top of the column extend the topmost unit — the block has
  * to be made of something, and repeating the youngest unit reads correctly.
+ *
+ * `infill` extends the DEEPEST unit downward instead of falling through to
+ * basement. The units above an unconformity need it: they were deposited onto
+ * a surface with relief, so wherever that surface drops below the base of the
+ * flat-lying stack, the lowest of those units is what fills the low and abuts
+ * the older rock. Basement there would be basement sitting above an
+ * unconformity, which cannot happen.
  */
-function layerAt(h, depth, lo, hi) {
+function layerAt(h, depth, lo, hi, infill = false) {
   if (depth <= 0) return lo < hi ? lo : -1;
   const base = lo > 0 ? h.cum[lo - 1] : 0;
   for (let i = lo; i < hi; i++) {
     if (depth < h.cum[i] - base) return i;
   }
-  return -1;
+  return infill && hi > lo ? hi - 1 : -1;
 }
 
 /**
@@ -172,7 +179,7 @@ export function rockAt(h, p0) {
         let tPost = 0;
         for (let k = lo; k < above; k++) tPost += Math.max(0.5, h.layers[k].thickness);
         const datum = e.fill === 'drape' ? u : e.surface.base;
-        const idx = layerAt(h, datum + tPost - p[2], lo, above);
+        const idx = layerAt(h, datum + tPost - p[2], lo, above, true);
         return idx < 0 ? { kind: 'basement' } : { kind: 'layer', index: idx };
       }
       // Below it: keep walking back, now restricted to the older units.

@@ -191,10 +191,13 @@ function emitUnconformity(p) {
     if (p.z > usurf) {
       // Above the erosion surface: these units were deposited after it, and
       // none of the older history touched them. s2.w picks whether they lie
-      // flat (onlapping the old surface) or drape it.
+      // flat (onlapping the old surface) or drape it. Onlapping beds have to
+      // fill the paleotopography they were laid down on, so the deepest of
+      // them infills wherever the old surface drops below the base of the
+      // flat-lying stack — hence the true.
       float tPost = cumAt(above) - cumAt(lo);
       float datum = mix(usurf, ${p}_s0.x, ${p}_s2.w);
-      return pickLayer(datum + tPost - p.z, lo, above, uid);
+      return pickLayer(datum + tPost - p.z, lo, above, true, uid);
     }
     lo = above;   // below it: keep walking back, older units only
   }`,
@@ -385,9 +388,18 @@ varying float vTop;
  * Depths at or above the top extend the youngest unit of that sub-column:
  * the block has to be made of something everywhere, and repeating the top
  * unit is the reading a geologist expects.
+ *
+ * infill extends the DEEPEST unit downward instead of falling through to
+ * basement — see layerAt() in unmake.js. The deepest unit is carried along in
+ * the walk rather than looked up afterwards, because GLSL ES 1.00 forbids
+ * indexing a uniform array with a computed index.
+ *
+ * (No backticks in here: this whole block sits inside a JS template literal.)
  */
-vec4 pickLayer(float depth, int lo, int hi, out float uid) {
+vec4 pickLayer(float depth, int lo, int hi, bool infill, out float uid) {
   float base = cumAt(lo);
+  vec4 deepest = vec4(0.0);
+  float deepestUid = 0.0;
   for (int i = 0; i < MAX_LAYERS; i++) {
     if (i < lo) continue;
     if (i >= hi) break;
@@ -395,6 +407,12 @@ vec4 pickLayer(float depth, int lo, int hi, out float uid) {
       uid = float(i) + 1.0;
       return vec4(uLayerA[i].rgb, uLayerB[i].x);
     }
+    deepest = vec4(uLayerA[i].rgb, uLayerB[i].x);
+    deepestUid = float(i) + 1.0;
+  }
+  if (infill && deepestUid > 0.5) {
+    uid = deepestUid;
+    return deepest;
   }
   uid = 0.0;
   return vec4(uBasementColor, uBasementPattern);
@@ -407,7 +425,7 @@ vec4 rockSample(vec3 P, out float uid) {
   int hi = uLayerCount;
   uid = 0.0;
 ${body.join('\n')}
-  return pickLayer(-p.z, lo, hi, uid);
+  return pickLayer(-p.z, lo, hi, false, uid);
 }
 
 void main() {

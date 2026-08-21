@@ -133,6 +133,11 @@ measurement is, from the orientation of the bedding surface itself.
 - Above the top of the column, the youngest unit is extended upward. The block
   has to be made of something everywhere, and repeating the top unit is the
   reading a geologist expects.
+- Where younger beds **lie flat** across an unconformity, they onlap the buried
+  relief: the deepest of them thickens downward to fill every low in the
+  erosion surface and abut the older rock. So that unit is thicker in the
+  paleovalleys than on the paleohighs, which is what onlap looks like in the
+  field.
 
 ---
 
