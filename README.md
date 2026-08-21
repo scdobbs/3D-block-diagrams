@@ -79,8 +79,10 @@ keeps running the copy you already have.
 # Using it
 
 **Layers** — build the column. Tap a unit to set rock type, thickness and
-color, or reorder and delete it. Lithology patterns follow the usual map
-conventions and are drawn procedurally, so they stay crisp at any scale.
+color, or delete it. **Drag a unit by its grip** to move it through the column
+(the Younger/Older buttons in the editor do the same thing). Lithology
+patterns follow the usual map conventions and are drawn procedurally, so they
+stay crisp at any scale.
 
 **History** — the geologic timeline, newest at the top. Add events, then tap
 one to edit it. Strike and trend get a compass you can drag; dip and plunge
@@ -138,6 +140,12 @@ measurement is, from the orientation of the bedding surface itself.
   erosion surface and abut the older rock. So that unit is thicker in the
   paleovalleys than on the paleohighs, which is what onlap looks like in the
   field.
+- An unconformity's **depth is derived, not set**. It buries its erosion
+  surface under the units deposited on it, so the surface sits at the base of
+  exactly those units — *Units above* is what moves it. Only the surface's
+  relief is yours to choose, and that is the part that does the geological
+  work: truncating the older beds, and giving the younger ones a shape to
+  onlap.
 
 ---
 

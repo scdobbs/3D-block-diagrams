@@ -11,7 +11,7 @@ import { eventIcon } from './icons.js';
 import {
   ROCKS, rock, makeLayer, makeEvent, EVENT_TYPES, EVENT_ORDER,
   MAX_LAYERS, MAX_EVENTS, PRESETS, defaultDocument, totalThickness,
-  FAULT_KINDS, FAULT_KIND_ORDER, faultRake, faultSense,
+  FAULT_KINDS, FAULT_KIND_ORDER, faultRake, faultSense, unconformityDatums,
 } from '../geo/model.js';
 import { quadrantBearing } from '../geo/math.js';
 import { surfaceRange, niceContourInterval } from '../geo/surfaces.js';
@@ -58,6 +58,17 @@ export function layersPanel(ctx) {
     }
 
     list.appendChild(basementRow(ctx));
+    enableDragReorder(list, {
+      rowSel: '.layer-row:not(.basement)',
+      gripSel: '.layer-grip',
+      idKey: 'layerId',
+      // The column is drawn youngest-first, which is already model order.
+      // Unconformities count units from the top, so their dividers stay put
+      // and a unit dragged across one changes which side of it it sits on.
+      commit: (ids) => ctx.store.edit((d) => {
+        d.layers = reorderById(d.layers, ids);
+      }, { structural: true }),
+    });
     root.appendChild(list);
 
     const total = Math.round(totalThickness(doc.layers));
@@ -104,7 +115,17 @@ function layerRow(ctx, layer, index, isOpen, toggle) {
   ]);
   head.addEventListener('click', () => toggle(layer.id));
 
-  const row = el('div', { class: 'layer-row' }, [head]);
+  // The grip sits outside the header so grabbing it never opens the editor.
+  const grip = el('button', {
+    class: 'layer-grip', type: 'button',
+    'aria-label': 'Drag to move this unit through the column',
+    title: 'Drag to move this unit through the column',
+  }, [el('span', { text: '⠿' })]);
+
+  const row = el('div', { class: 'layer-row' }, [
+    el('div', { class: 'layer-main' }, [grip, head]),
+  ]);
+  row.dataset.layerId = layer.id;
   if (!isOpen) return row;
 
   const body = el('div', { class: 'layer-body' });
@@ -170,11 +191,16 @@ function basementRow(ctx) {
   const doc = ctx.store.doc;
   const r = rock(doc.basementRockId);
   return el('div', { class: 'layer-row basement' }, [
-    el('div', { class: 'layer-head static' }, [
-      swatchEl(r.color, r.pattern, 'swatch'),
-      el('div', { class: 'layer-title' }, [
-        el('div', { class: 'layer-name', text: 'Basement' }),
-        el('div', { class: 'layer-sub', text: 'everything below the column' }),
+    // Basement has no grip — it is not a unit and cannot be reordered — but it
+    // keeps the gap so its swatch still lines up with the column above.
+    el('div', { class: 'layer-main' }, [
+      el('div', { class: 'layer-grip spacer' }),
+      el('div', { class: 'layer-head static' }, [
+        swatchEl(r.color, r.pattern, 'swatch'),
+        el('div', { class: 'layer-title' }, [
+          el('div', { class: 'layer-name', text: 'Basement' }),
+          el('div', { class: 'layer-sub', text: 'everything below the column' }),
+        ]),
       ]),
     ]),
   ]);
@@ -286,7 +312,15 @@ export function historyPanel(ctx) {
     for (let i = doc.events.length - 1; i >= 0; i--) {
       list.appendChild(eventRow(ctx, doc.events[i], i));
     }
-    enableDragReorder(list, ctx);
+    enableDragReorder(list, {
+      rowSel: '.event-row',
+      gripSel: '.event-grip',
+      idKey: 'evId',
+      // Drawn youngest-first, so the model order is this order reversed.
+      commit: (ids) => ctx.store.edit((d) => {
+        d.events = reorderById(d.events, ids.slice().reverse());
+      }, { structural: true }),
+    });
     root.appendChild(el('div', { class: 'timeline' }, [
       el('span', { class: 'time-cap', text: 'youngest' }),
       list,
@@ -381,23 +415,30 @@ function summarise(ev) {
 }
 
 /**
- * Drag an event up or down the timeline by its grip.
+ * Drag a row up or down its list by its grip. Used by both the timeline and
+ * the stratigraphic column.
  *
  * The dragged row is only translated, never re-parented mid-drag — a drop
  * line marks where it will land. That keeps the geometry stable while the
  * finger is down, which matters because the list is inside a scroller.
+ *
+ * `commit` is handed the row ids in the order they now appear on screen. Each
+ * list maps that onto the model itself: the timeline is drawn youngest-first
+ * so its model order is the reverse, while the column is already in model
+ * order. `rowSel` has to exclude any decoration sharing the row class — the
+ * column's basement row and unconformity dividers are not draggable.
  */
-function enableDragReorder(list, ctx) {
+function enableDragReorder(list, { rowSel, gripSel, idKey, commit }) {
   let drag = null;
   const line = el('div', { class: 'drop-line' });
-
-  const others = () => [...list.querySelectorAll('.event-row')].filter((r) => r !== drag.row);
+  const rows = () => [...list.querySelectorAll(rowSel)];
+  const others = () => rows().filter((r) => r !== drag.row);
 
   list.addEventListener('pointerdown', (e) => {
-    const grip = e.target.closest('.event-grip');
+    const grip = e.target.closest(gripSel);
     if (!grip || drag) return;
-    const row = grip.closest('.event-row');
-    if (!row || list.querySelectorAll('.event-row').length < 2) return;
+    const row = grip.closest(rowSel);
+    if (!row || rows().length < 2) return;
 
     e.preventDefault();
     grip.setPointerCapture(e.pointerId);
@@ -409,15 +450,17 @@ function enableDragReorder(list, ctx) {
     if (!drag || e.pointerId !== drag.pointerId) return;
     drag.row.style.transform = `translateY(${e.clientY - drag.startY}px)`;
 
-    const rows = others();
-    let idx = rows.length;
-    for (let i = 0; i < rows.length; i++) {
-      const b = rows[i].getBoundingClientRect();
+    const rest = others();
+    let idx = rest.length;
+    for (let i = 0; i < rest.length; i++) {
+      const b = rest[i].getBoundingClientRect();
       if (e.clientY < b.top + b.height / 2) { idx = i; break; }
     }
     drag.target = idx;
-    if (idx < rows.length) list.insertBefore(line, rows[idx]);
-    else list.appendChild(line);
+    // Placed relative to the last row rather than appended, so the line lands
+    // above the column's basement row instead of below it.
+    if (idx < rest.length) list.insertBefore(line, rest[idx]);
+    else rest[rest.length - 1].after(line);
   });
 
   const finish = (e) => {
@@ -429,22 +472,22 @@ function enableDragReorder(list, ctx) {
     drag = null;
 
     if (target == null) return;
-    // Work in ids: the list is drawn youngest-first, so the model order is
-    // this order reversed.
-    const shown = [...list.querySelectorAll('.event-row')].map((r) => r.dataset.evId);
-    const id = row.dataset.evId;
+    const shown = rows().map((r) => r.dataset[idKey]);
+    const id = row.dataset[idKey];
     const without = shown.filter((x) => x !== id);
     without.splice(target, 0, id);   // target === length appends
-    const modelOrder = without.slice().reverse();
-    ctx.store.edit((d) => {
-      const byId = new Map(d.events.map((x) => [x.id, x]));
-      const next = modelOrder.map((x) => byId.get(x)).filter(Boolean);
-      if (next.length === d.events.length) d.events = next;
-    }, { structural: true });
+    commit(without);
   };
 
   list.addEventListener('pointerup', finish);
   list.addEventListener('pointercancel', finish);
+}
+
+/** Reorder a document array to match a list of ids, or leave it alone. */
+function reorderById(arr, ids) {
+  const byId = new Map(arr.map((x) => [x.id, x]));
+  const next = ids.map((x) => byId.get(x)).filter(Boolean);
+  return next.length === arr.length ? next : arr;
 }
 
 // --- per-event parameter controls ------------------------------------------
@@ -604,11 +647,14 @@ function buildEventControls(ctx, ev, index, body) {
 
     case 'unconformity': {
       const doc = ctx.store.doc;
+      const datum = unconformityDatums(doc).get(ev.id);
+      const depth = datum ? Math.round(-datum.base) : 0;
       body.appendChild(numberRow({
         label: 'Units above', value: ev.aboveCount, min: 0, max: doc.layers.length, step: 1,
         onChange: (v) => ctx.store.edit((d) => { d.events[index].aboveCount = Math.round(v); },
           { structural: true }),
-        hint: 'How many units from the top of the column were deposited after the erosion.',
+        hint: `How many units from the top of the column were deposited after the`
+          + ` erosion. That puts the erosion surface ${depth} m down, at their base.`,
       }));
       body.appendChild(selectRow({
         label: 'Younger beds',
@@ -620,10 +666,15 @@ function buildEventControls(ctx, ev, index, body) {
         onChange: (v) => ctx.store.edit((d) => { d.events[index].fill = v; }, { structural: true }),
       }));
       body.appendChild(el('div', { class: 'sub-head', text: 'Erosion surface' }));
+      body.appendChild(el('div', {
+        class: 'ctl-hint standalone',
+        text: 'Its relief is what truncates the older beds and gives the younger'
+          + ' ones something to onlap; its depth follows the unit count above.',
+      }));
       body.appendChild(surfaceEditor(ev.surface, (patch, key) => {
         ctx.store.edit((d) => { Object.assign(d.events[index].surface, patch); },
           { coalesce: `${ev.id}:${key}` });
-      }));
+      }, { showBase: false }));
       break;
     }
   }

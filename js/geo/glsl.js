@@ -187,19 +187,23 @@ function emitUnconformity(p) {
     int above = int(${p}_above + 0.5);
     above = min(above, hi);
     above = max(above, lo);
-    float usurf = surfH(${p}_s0, ${p}_s1, ${p}_s2, p.xy);
-    if (p.z > usurf) {
-      // Above the erosion surface: these units were deposited after it, and
-      // none of the older history touched them. s2.w picks whether they lie
-      // flat (onlapping the old surface) or drape it. Onlapping beds have to
-      // fill the paleotopography they were laid down on, so the deepest of
-      // them infills wherever the old surface drops below the base of the
-      // flat-lying stack — hence the true.
-      float tPost = cumAt(above) - cumAt(lo);
-      float datum = mix(usurf, ${p}_s0.x, ${p}_s2.w);
-      return pickLayer(datum + tPost - p.z, lo, above, true, uid);
+    // above == lo means nothing was deposited on the surface, so there is no
+    // younger cover to switch to and it is not yet an unconformity.
+    if (above > lo) {
+      float usurf = surfH(${p}_s0, ${p}_s1, ${p}_s2, p.xy);
+      if (p.z > usurf) {
+        // Above the erosion surface: these units were deposited after it, and
+        // none of the older history touched them. s2.w picks whether they lie
+        // flat (onlapping the old surface) or drape it. Onlapping beds have to
+        // fill the paleotopography they were laid down on, so the deepest of
+        // them infills wherever the old surface drops below the base of the
+        // flat-lying stack — hence the true.
+        float tPost = cumAt(above) - cumAt(lo);
+        float datum = mix(usurf, ${p}_s0.x, ${p}_s2.w);
+        return pickLayer(datum + tPost - p.z, lo, above, true, uid);
+      }
+      lo = above;   // below it: keep walking back, older units only
     }
-    lo = above;   // below it: keep walking back, older units only
   }`,
   };
 }

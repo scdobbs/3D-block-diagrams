@@ -426,17 +426,18 @@ html, body {
   font-size: 11px; color: var(--ink-faint); margin-top: -2px;
 }
 
-/* Drag-to-reorder */
-.event-main { display: flex; align-items: stretch; }
-.event-grip {
+/* Drag-to-reorder — the timeline and the stratigraphic column share this. */
+.event-main, .layer-main { display: flex; align-items: stretch; }
+.event-grip, .layer-grip {
   flex: 0 0 auto; width: 30px; border: 0; padding: 0;
   background: none; color: var(--ink-faint); cursor: grab;
   font-size: 15px; line-height: 1; touch-action: none;
   border-right: 1px solid var(--line);
 }
-.event-grip:active { cursor: grabbing; color: var(--accent); }
-.event-main .event-head { flex: 1 1 auto; min-width: 0; }
-.event-row.dragging {
+.event-grip:active, .layer-grip:active { cursor: grabbing; color: var(--accent); }
+.layer-grip.spacer { cursor: default; }
+.event-main .event-head, .layer-main .layer-head { flex: 1 1 auto; min-width: 0; }
+.event-row.dragging, .layer-row.dragging {
   position: relative; z-index: 3; opacity: .92;
   box-shadow: 0 10px 26px rgba(0, 0, 0, .55);
   border-color: var(--accent);

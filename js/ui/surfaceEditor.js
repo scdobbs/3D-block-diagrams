@@ -7,8 +7,10 @@ import { SURFACE_KINDS } from '../geo/surfaces.js';
 /**
  * @param {object} surface  the live surface object (read for initial values)
  * @param {(patch:object, coalesceKey:string) => void} onChange
+ * @param {{showBase?: boolean}} [opts]  an unconformity's datum is derived from
+ *   its unit count rather than set by hand, so that panel hides the control.
  */
-export function surfaceEditor(surface, onChange) {
+export function surfaceEditor(surface, onChange, opts = {}) {
   const root = el('div', { class: 'surface-editor' });
 
   const build = () => {
@@ -88,10 +90,12 @@ export function surfaceEditor(surface, onChange) {
         break;
     }
 
-    root.appendChild(numberRow({
-      label: 'Base elevation', value: s.base, min: -2000, max: 1500, step: 10,
-      unit: 'm', onChange: set('base'),
-    }));
+    if (opts.showBase !== false) {
+      root.appendChild(numberRow({
+        label: 'Base elevation', value: s.base, min: -2000, max: 1500, step: 10,
+        unit: 'm', onChange: set('base'),
+      }));
+    }
 
     if (s.kind !== 'flat') {
       root.appendChild(numberRow({

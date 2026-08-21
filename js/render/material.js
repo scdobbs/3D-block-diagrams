@@ -3,7 +3,7 @@
 
 import * as THREE from '../../vendor/three.module.js';
 import { buildFragmentShader, VERTEX, uniformPrefix } from '../geo/glsl.js';
-import { MAX_LAYERS, rock, faultRake } from '../geo/model.js';
+import { MAX_LAYERS, rock, faultRake, unconformityDatums } from '../geo/model.js';
 import { planeFrame, axisFrame, slipVec, DEG } from '../geo/math.js';
 import { KIND_CODE, surfaceUniform, surfaceRange, niceContourInterval } from '../geo/surfaces.js';
 
@@ -111,8 +111,9 @@ export class BlockMaterial {
     }
 
     const events = activeEvents(doc);
+    const datums = unconformityDatums(doc);
     for (let i = 0; i < events.length; i++) {
-      setEventUniforms(u, uniformPrefix(i), events[i]);
+      setEventUniforms(u, uniformPrefix(i), events[i], datums);
     }
   }
 }
@@ -150,7 +151,7 @@ function addEventUniforms(u, p, e) {
   }
 }
 
-function setEventUniforms(u, p, e) {
+function setEventUniforms(u, p, e, datums) {
   switch (e.type) {
     case 'tilt': {
       const { strikeVec } = planeFrame(e.strike, e.dip);
@@ -207,10 +208,14 @@ function setEventUniforms(u, p, e) {
     case 'unconformity': {
       const s = e.surface;
       const [base, amp, wl, az, cx, cy, rad, grad, slope, rough] = surfaceUniform(s);
-      u[`${p}_s0`].value.set(base, amp, wl, az);
+      // s0.x is both the surface's datum and, in lie-flat mode, the level the
+      // younger stack hangs from — so handing it the derived datum is the
+      // whole of the fix on this side. See unconformityDatums().
+      const d = datums.get(e.id);
+      u[`${p}_s0`].value.set(d ? d.base : base, amp, wl, az);
       u[`${p}_s1`].value.set(cx, cy, rad, grad);
       u[`${p}_s2`].value.set(slope, rough, KIND_CODE[s.kind] ?? 0, e.fill === 'drape' ? 0 : 1);
-      u[`${p}_above`].value = e.aboveCount;
+      u[`${p}_above`].value = d ? d.above : e.aboveCount;
       break;
     }
   }

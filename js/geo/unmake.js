@@ -23,7 +23,9 @@ import {
   planeFrame, axisFrame, slipVec, rotateAbout, normalToStrikeDip, dot, sub, DEG,
 } from './math.js';
 import { surfaceHeight } from './surfaces.js';
-import { cumulativeDepths, totalThickness, faultRake } from './model.js';
+import {
+  cumulativeDepths, totalThickness, faultRake, unconformityDatums,
+} from './model.js';
 
 /**
  * Precompute the per-event vectors so a point query is just arithmetic.
@@ -31,8 +33,17 @@ import { cumulativeDepths, totalThickness, faultRake } from './model.js';
  */
 export function compileHistory(doc) {
   const events = doc.events.filter((e) => e.enabled !== false);
+  const datums = unconformityDatums(doc);
   const compiled = events.map((e) => {
     switch (e.type) {
+      case 'unconformity': {
+        // Bake in the derived datum and the clamped unit count so the query
+        // path is pure arithmetic and cannot drift from the shader, which is
+        // handed the same two numbers as uniforms.
+        const d = datums.get(e.id);
+        if (!d) return { ...e };
+        return { ...e, aboveCount: d.above, surface: { ...e.surface, base: d.base } };
+      }
       case 'tilt': {
         const { strikeVec } = planeFrame(e.strike, e.dip);
         return { ...e, axis: strikeVec };
@@ -172,7 +183,10 @@ export function rockAt(h, p0) {
     const e = h.events[i];
 
     if (e.type === 'unconformity') {
-      const above = Math.min(Math.max(0, e.aboveCount | 0), hi);
+      const above = e.aboveCount;   // clamped, and its datum derived, at compile
+      // Nothing was deposited on it, so there is no younger cover to switch to
+      // and it is not yet an unconformity. Leave the history alone.
+      if (above <= lo) continue;
       // Anything above the erosion surface was deposited after it.
       const u = surfaceHeight(e.surface, p[0], p[1]);
       if (p[2] > u) {
@@ -207,12 +221,12 @@ export function rockAt(h, p0) {
 export function stratDepth(h, p0) {
   let p = [p0[0], p0[1], p0[2]];
   let lo = 0;
-  const hi = h.layers.length;
 
   for (let i = h.events.length - 1; i >= 0; i--) {
     const e = h.events[i];
     if (e.type === 'unconformity') {
-      const above = Math.min(Math.max(0, e.aboveCount | 0), hi);
+      const above = e.aboveCount;   // clamped, and its datum derived, at compile
+      if (above <= lo) continue;    // nothing deposited on it — see rockAt
       const u = surfaceHeight(e.surface, p[0], p[1]);
       if (p[2] > u) {
         let tPost = 0;

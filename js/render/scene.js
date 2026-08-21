@@ -7,6 +7,7 @@ import { BlockMaterial } from './material.js';
 import { buildBlockGeometry, buildEdgeLines, footprint } from './block.js';
 import { planeFrame, axisFrame, rotateAbout, DEG } from '../geo/math.js';
 import { surfaceHeight, surfaceRange } from '../geo/surfaces.js';
+import { unconformityDatums } from '../geo/model.js';
 import { buildContourLabels, buildLabelMeshes, MAX_LABELS } from './contours.js';
 
 export class BlockScene {
@@ -317,11 +318,15 @@ export class BlockScene {
         const n = 48;
         const pos = [];
         const idx = [];
+        // The datum is derived from the unit count, not stored on the surface,
+        // so the guide has to be drawn at the same level the shader uses.
+        const d = unconformityDatums(doc).get(event.id);
+        const surf = d ? { ...event.surface, base: d.base } : event.surface;
         for (let j = 0; j <= n; j++) {
           for (let i = 0; i <= n; i++) {
             const x = (i / n - 0.5) * B.width;
             const y = (j / n - 0.5) * B.depth;
-            pos.push(x, y, surfaceHeight(event.surface, x, y));
+            pos.push(x, y, surfaceHeight(surf, x, y));
           }
         }
         for (let j = 0; j < n; j++) {

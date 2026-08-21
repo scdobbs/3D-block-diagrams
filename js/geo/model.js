@@ -182,7 +182,9 @@ export const EVENT_TYPES = {
       // 'drape' — younger beds parallel the buried surface, as they do over
       //           an irregular erosional topography.
       fill: 'flat',
-      surface: defaultSurface({ kind: 'hills', base: -300, amplitude: 90, wavelength: 1100 }),
+      // `base` is ignored here: an unconformity's datum is derived from
+      // aboveCount by unconformityDatums(). Only the relief is read.
+      surface: defaultSurface({ kind: 'hills', amplitude: 90, wavelength: 1100 }),
     }),
   },
 };
@@ -270,6 +272,41 @@ export function cumulativeDepths(layers) {
 
 export function totalThickness(layers) {
   return layers.reduce((a, l) => a + Math.max(0.5, l.thickness), 0);
+}
+
+/**
+ * Where each unconformity's erosion surface sits, keyed by event id.
+ *
+ * The datum is not a free parameter. An unconformity buries its erosion
+ * surface under the units deposited on top of it, so the surface has to sit at
+ * the base of exactly those units. Let the two be set independently and they
+ * contradict each other: hang the younger stack off a datum that is too
+ * shallow and it floats off the top of the block, taking the youngest unit out
+ * of sight; too deep and the lowest units have nowhere to be. So the datum is
+ * derived from `aboveCount`, and the surface's *relief* is what the user sets
+ * — which is the part that does the geological work, truncating the older beds
+ * and giving the younger ones something to onlap.
+ *
+ * Walking youngest-first is what makes stacked unconformities come out right:
+ * each one can only claim units the younger ones left behind, which is also
+ * why `above` is clamped from below by the one above it.
+ *
+ * Returns Map(eventId -> { above, base }), with `above` already clamped.
+ */
+export function unconformityDatums(doc) {
+  const cum = cumulativeDepths(doc.layers);
+  const hi = doc.layers.length;
+  const events = doc.events.filter((e) => e.enabled !== false);
+  const out = new Map();
+  let lo = 0;
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.type !== 'unconformity') continue;
+    const above = Math.min(Math.max(lo, e.aboveCount | 0), hi);
+    out.set(e.id, { above, base: -(above > 0 ? cum[above - 1] : 0) });
+    lo = above;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
